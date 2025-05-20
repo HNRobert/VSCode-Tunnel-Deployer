@@ -92,7 +92,54 @@ else
 fi
 
 sudo systemctl start "${SERVICE_NAME}"
-info "Service '${SERVICE_NAME}' is now running."
+info "Service '${SERVICE_NAME}' has been started. Checking status..."
+
+# Start checking service status quickly
+sleep 1
+
+# Check service status and handle accordingly
+SERVICE_STATUS=$(sudo systemctl status "${SERVICE_NAME}" 2>&1)
+SERVICE_EXIT_CODE=$?
+
+if [ $SERVICE_EXIT_CODE -ne 0 ]; then
+    # Service failed to start properly
+    error "Service failed to start properly. Error details:"
+    echo -e "\e[31m$SERVICE_STATUS\e[0m"
+    error "Please fix the issues above or report them at https://github.com/your-username/vscode-tunnel-deployer/issues"
+else
+    # Service started, now check if it's running properly
+    # Look for the registration code pattern with retries
+    MAX_TRIES=5
+    TRIES=0
+    REGISTRATION_CODE=""
+    
+    while [ $TRIES -lt $MAX_TRIES ]; do
+        TUNNEL_LOGS=$(sudo journalctl -u "${SERVICE_NAME}" -n 50 --no-pager 2>&1)
+        REGISTRATION_CODE=$(echo "$TUNNEL_LOGS" | grep -o '[A-Z]\{4\}-[A-Z]\{4\}-[A-Z]\{4\}')
+        
+        if [ -n "$REGISTRATION_CODE" ]; then
+            # Found registration code
+            info "Service '${SERVICE_NAME}' is running successfully!"
+            echo -e "\e[32m========================================================\e[0m"
+            echo -e "\e[32m Registration code found: $REGISTRATION_CODE \e[0m"
+            echo -e "\e[32m Please use this code to authenticate your machine in VS Code \e[0m"
+            echo -e "\e[32m========================================================\e[0m"
+            break
+        fi
+        
+        # Try again in 1 second if we haven't reached max tries
+        TRIES=$((TRIES+1))
+        if [ $TRIES -lt $MAX_TRIES ]; then
+            sleep 1
+        fi
+    done
+    
+    # Only show this message if we never found a registration code after all tries
+    if [ -z "$REGISTRATION_CODE" ]; then
+        info "Service '${SERVICE_NAME}' is running, but no registration code detected."
+        info "You can check for vscode tunnel service log with: sudo journalctl -u ${SERVICE_NAME} -f"
+    fi
+fi
 
 # Print service control guide
 cat << EOG
