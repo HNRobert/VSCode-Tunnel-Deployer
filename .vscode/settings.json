@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
         "armhf",
-        "journalctl"
+        "journalctl",
+        "mrunning",
+        "mstopped"
     ]
 }
