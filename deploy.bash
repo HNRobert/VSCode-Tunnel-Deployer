@@ -233,14 +233,15 @@ EOF
 
         while [ $TRIES -lt $MAX_TRIES ]; do
             TUNNEL_LOGS=$(sudo journalctl -u "${SERVICE_NAME}" -n 50 --no-pager 2>&1)
-            REGISTRATION_CODE=$(echo "$TUNNEL_LOGS" | grep -o '[A-Z]\{4\}-[A-Z]\{4\}-[A-Z]\{4\}')
+            REGISTRATION_CODE=$(echo "$TUNNEL_LOGS" | grep -o "code [0-9A-Z]\{4\}-[0-9A-Z]\{4\}" | sed 's/code //' | tail -n 1)
 
             if [ -n "$REGISTRATION_CODE" ]; then
                 # Found registration code
                 success "Service '${SERVICE_NAME}' is running successfully!"
                 echo -e "\e[32m========================================================\e[0m"
-                echo -e "\e[32m Registration code found: $REGISTRATION_CODE \e[0m"
+                echo -e "\e[32m Registration code: $REGISTRATION_CODE \e[0m"
                 echo -e "\e[32m Please use this code to authenticate your machine in VS Code \e[0m"
+                echo -e "\e[32m on https://github.com/login/device \e[0m"
                 echo -e "\e[32m========================================================\e[0m"
                 break
             fi
