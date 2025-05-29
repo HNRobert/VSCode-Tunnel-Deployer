@@ -129,7 +129,7 @@ remove_service() {
 # Function to install and configure a new VS Code tunnel service
 install_service() {
     # Check if 'code' command exists
-    if ! command -v code &>/dev/null; then
+    if ! command -v /usr/bin/code &>/dev/null; then
         info "VS Code CLI not found. Installing now..."
         sudo apt-get update
         sudo apt-get install -y wget gpg apt-transport-https
@@ -139,12 +139,36 @@ install_service() {
         rm -f packages.microsoft.gpg
         sudo apt update
         sudo apt install -y code
-    else
-        info "VS Code CLI is already installed."
+        info "VS Code CLI has been installed system-wide."
     fi
 
-    # Get full path of 'code'
-    CODE_PATH=$(command -v code)
+    # Get full path of 'code' (ensure we're using the system version, not VSCode server version)
+    CODE_PATH=$(which code)
+
+    # Get full path to system vscode executable
+    if command -v /usr/bin/code &>/dev/null; then
+        info "Found system-wide VS Code installation at /usr/bin/code"
+        CODE_PATH="/usr/bin/code"
+    elif command -v /usr/share/code &>/dev/null; then
+        info "Found system-wide VS Code installation at /usr/share/code"
+        CODE_PATH="/usr/share/code"
+    elif [[ "$CODE_PATH" == *".vscode-server"* ]]; then
+        # If only .vscode-server version exists
+        read -p "VS Code CLI found is from .vscode-server which doesn't support tunnels. Do you want to use system installation at /usr/bin/code? (Y/n): " USE_SYSTEM_VSCODE
+        USE_SYSTEM_VSCODE=${USE_SYSTEM_VSCODE:-Y}
+        
+        if [[ "$USE_SYSTEM_VSCODE" == "Y" || "$USE_SYSTEM_VSCODE" == "y" ]]; then
+            if [ -f "/usr/bin/code" ]; then
+                CODE_PATH="/usr/bin/code"
+                info "Using system VS Code installation at $CODE_PATH"
+            else
+                error "System installation not found at /usr/bin/code."
+                info "Will continue with $CODE_PATH but the tunnel may not work."
+            fi
+        else
+            info "Continuing with $CODE_PATH but the tunnel may not work."
+        fi
+    fi
 
     # Prompt user to input a custom name B
     read -p "Enter a custom name (used in service name, leave blank to use default): " B
