@@ -211,7 +211,7 @@ After=network.target
 Type=simple
 User=${USERNAME}
 ExecStart=${TUNNEL_CMD}
-Restart=on-failure
+Restart=always
 RestartSec=10
 
 [Install]
